@@ -1,0 +1,33 @@
+version: "3.9"
+services:
+  demo_yolox:
+
+    build:
+      args: [ progress=plain ]
+      context: .
+      dockerfile: docker/Dockerfile
+
+    image: lux.x-contion.top:500/dev/yolox:wxl_0703 # 这里不能大写
+    entrypoint: "/usr/sbin/sshd -D"
+    privileged: true
+    container_name: yolox_B
+    environment:
+      - DEBUG=1
+      - SHOW='true'
+      - DOCKER_BUILDKIT=1
+      - NVIDIA_DRIVER_CAPABILITIES=compute,video,utility,graphics
+    volumes:
+      - ./:/workspace #将主机当前模板与容器内的‘/workspace’目录进行映射
+      - /data/Datasets:/data/Datasets:ro #! 这个 :ro 表示将其设置为只读，避免不小心删除数据集，使用数据集的时候将数据集 用软链接 到容器内的其他地方使用
+      - /data/Weights:/data/Weights:ro
+      #? 还有个输出的文件路径要设置
+    deploy:
+      mode: replicated
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              capabilities: [ gpu ]
+              count: all # 这个词条不能少 
+          memory: 16g # 保证能用的内存量 #? 这个也不是必要的
+    shm_size: 2gb
