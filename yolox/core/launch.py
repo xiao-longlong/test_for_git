@@ -57,11 +57,16 @@ def launch(
         args (tuple): arguments passed to main_func
     """
     world_size = num_machines * num_gpus_per_machine
+    ### 这里确认了是单机分布式训练
+    ### 确认了训练方法是spwan
+    ### 确定了训练不用cache，即start_method不用fork
+
     if world_size > 1:
         # https://github.com/pytorch/pytorch/pull/14391
         # TODO prctl in spawned processes
 
         if dist_url == "auto":
+            # 获取一个可用的端口，并将 dist_url 更新为 f"tcp://127.0.0.1:{port}"，即本地的 TCP 连接地址。这意味着使用本地主机（127.0.0.1）上的一个自由端口来进行分布式训练。
             assert (
                 num_machines == 1
             ), "dist_url=auto cannot work with distributed training."
@@ -69,8 +74,8 @@ def launch(
             dist_url = f"tcp://127.0.0.1:{port}"
 
         start_method = "spawn"
+        # 如果得到cache即为真，否则为假
         cache = vars(args[1]).get("cache", False)
-
         # To use numpy memmap for caching image into RAM, we have to use fork method
         if cache:
             assert sys.platform != "win32", (
@@ -97,7 +102,8 @@ def launch(
     else:
         main_func(*args)
 
-
+# 在定义的方法前加下划线，代表此方法仅在此类中使用，不供外界调用
+# 注意这种不是语法，而只是一种约定，实际从语法上还是可以被调用的
 def _distributed_worker(
     local_rank,
     main_func,
@@ -109,12 +115,15 @@ def _distributed_worker(
     args,
     timeout=DEFAULT_TIMEOUT,
 ):
+    # 检查CUDA是否可用
     assert (
         torch.cuda.is_available()
     ), "cuda is not available. Please check your installation."
+    # 单机器，local_rank == global_rank
     global_rank = machine_rank * num_gpus_per_machine + local_rank
     logger.info("Rank {} initialization finished.".format(global_rank))
     try:
+        # 初始化进程组
         dist.init_process_group(
             backend=backend,
             init_method=dist_url,
@@ -129,6 +138,7 @@ def _distributed_worker(
     # Setup the local process group (which contains ranks within the same machine)
     assert comm._LOCAL_PROCESS_GROUP is None
     num_machines = world_size // num_gpus_per_machine
+    # 只有一台机器，只会为当前机器创建进程组
     for i in range(num_machines):
         ranks_on_i = list(
             range(i * num_gpus_per_machine, (i + 1) * num_gpus_per_machine)
@@ -141,6 +151,7 @@ def _distributed_worker(
     # See: https://github.com/facebookresearch/maskrcnn-benchmark/issues/172
     comm.synchronize()
 
+    #这两行代码用于检查 GPU 数量的合理性，并设置当前进程的 GPU 设备，以确保在分布式训练中每个进程使用不同的 GPU 设备进行计算。
     assert num_gpus_per_machine <= torch.cuda.device_count()
     torch.cuda.set_device(local_rank)
 

@@ -70,7 +70,9 @@ def configure_module(ulimit_value=8192):
     # multiprocess might be harmful on performance of torch dataloader
     os.environ["OPENCV_OPENCL_RUNTIME"] = "disabled"
     try:
+        # opencv的线程数为0
         cv2.setNumThreads(0)
+        # 禁用OpenCL
         cv2.ocl.setUseOpenCL(False)
     except Exception:
         # cv2 version mismatch might rasie exceptions.

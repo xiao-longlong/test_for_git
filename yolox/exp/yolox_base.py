@@ -18,7 +18,7 @@ class Exp(BaseExp):
 
         # ---------------- model config ---------------- #
         # detect classes number of model
-        self.num_classes = 80
+        self.num_classes = 4
         # factor of model depth
         self.depth = 1.00
         # factor of model width
@@ -276,7 +276,8 @@ class Exp(BaseExp):
             data_dir=self.data_dir,
             json_file=self.val_ann if not testdev else self.test_ann,
             # name="val2017" if not testdev else "test2017",
-            name="valtest" if not testdev else "test2017",
+            # name="valtest" if not testdev else "test2017",
+            name = "valcustomcoco" if not testdev else "test2017",
             img_size=self.test_size,
             preproc=ValTransform(legacy=legacy),
         )

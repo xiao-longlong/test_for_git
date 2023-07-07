@@ -41,10 +41,13 @@ def make_parser():
         type=str,
         help="plz input your experiment description file",
     )
+    # 设置中断后恢复训练的地方，目前是不使用中断后恢复的。
     parser.add_argument(
         "--resume", default=False, action="store_true", help="resume training"
     )
+    # 检查点文件的路径。
     parser.add_argument("-c", "--ckpt", default=None, type=str, help="checkpoint file")
+    # 与"--resume"配合使用。
     parser.add_argument(
         "-e",
         "--start_epoch",
@@ -119,18 +122,21 @@ def main(exp: Exp, args):
 
 
 if __name__ == "__main__":
+    ### 前面是通过读命令行参数和配置文件参数，以获得训练的环境配置
+    # 这里通过try&except语句，配置了打开文件的数目上限，和opencv相关的设置。
     configure_module()
     args = make_parser().parse_args()
     exp = get_exp(args.exp_file, args.name)
+    # 这里是命令行变量更新进exp
     exp.merge(args.opts)
-
     if not args.experiment_name:
         args.experiment_name = exp.exp_name
-
     num_gpu = get_num_devices() if args.devices is None else args.devices
     assert num_gpu <= get_num_devices()
-
     dist_url = "auto" if args.dist_url is None else args.dist_url
+
+
+    
     launch(
         main,
         num_gpu,
